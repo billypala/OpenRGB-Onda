@@ -31,13 +31,21 @@ OndaController::OndaController(hid_device* dev_handle, const char* path, unsigne
     usb_pid           = pid;
     firmware_version  = 0;
 
-#if ONDA_ENABLE_HANDSHAKE
     /*-----------------------------------------------------*\
-    | Official software performs this at enumeration.        |
-    | Non-fatal: if it fails we still try to drive the LEDs. |
+    | NO HANDSHAKE HERE!                                    |
+    |                                                            |
+    | Verified on hardware: sending GET(0x80) and then data   |
+    | SETs on the same handle puts the device into a locked   |
+    | state (all SETs fail with ERROR_GEN_FAILURE until the   |
+    | device recovers after idle time).                       |
+    | Data SETs work fine on a fresh handle WITHOUT any       |
+    | handshake, so we simply don't do one.                   |
+    |                                                            |
+    | (The official software handshakes on a temporary handle |
+    |  and closes it before sending data - that pattern also  |
+    |  avoids the lock, but no handshake is simpler and       |
+    |  proven to work.)                                       |
     \*-----------------------------------------------------*/
-    Handshake();
-#endif
 }
 
 std::string OndaController::GetLocationString()
