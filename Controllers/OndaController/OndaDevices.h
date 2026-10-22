@@ -26,10 +26,21 @@
 /*---------------------------------------------------------*\
 | LED layout                                                |
 |                                                           |
-|   8 bars (zones) x 60 LEDs = 480 total                    |
-|   (devinfo struct: LEDBarCount=8, 60 per bar, 480 total)  |
+|   IMPORTANT (verified on real hardware 2026-10-23):       |
+|   The device only implements 4 feature data reports       |
+|   (IDs 0x10-0x13). IDs 0x14-0x17 return                   |
+|   ERROR_INVALID_PARAMETER - they do NOT exist.             |
+|   => 4 bars (zones) x 60 LEDs = 240 LEDs total.           |
+|   The official software assumes 8 bars, but its sends     |
+|   for bars 4-7 (IDs 0x14-0x17) silently fail.             |
+|                                                           |
+|   WARNING: do NOT send GET(0x80) and then data SETs on    |
+|   the same handle - this puts the device into a locked    |
+|   state (all SETs return ERROR_GEN_FAILURE until the      |
+|   device recovers after idle time). Data SETs work on a   |
+|   fresh handle without any handshake.                     |
 \*---------------------------------------------------------*/
-#define ONDA_NUM_BARS              8
+#define ONDA_NUM_BARS              4
 #define ONDA_LEDS_PER_BAR          60
 
 /*---------------------------------------------------------*\
