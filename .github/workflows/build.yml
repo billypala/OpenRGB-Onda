@@ -1,0 +1,61 @@
+name: Build OpenRGB with Onda driver
+
+# 构建流程：克隆上游 OpenRGB 完整源码 -> 注入昂达驱动 -> Qt6 + MSVC 编译 -> 上传成品
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows-64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone upstream OpenRGB
+        shell: pwsh
+        run: git clone --depth 1 https://github.com/CalcProgrammer1/OpenRGB.git openrgb-src
+
+      - name: Inject Onda driver
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path openrgb-src/Controllers/OndaController | Out-Null
+          Copy-Item -Recurse -Force "Controllers/OndaController/*" openrgb-src/Controllers/OndaController/
+
+      - name: Install Qt 6.8.3
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.8.3
+          arch: win64_msvc2022_64
+          add-tools-to-path: true
+          modules: qt5compat qtserialport qtnetwork
+
+      - name: Install jom
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://download.qt.io/official_releases/jom/jom.zip -OutFile jom.zip
+          Expand-Archive jom.zip -DestinationPath C:\jom
+          "C:\jom" | Out-File -Append $env:GITHUB_PATH
+
+      - name: Setup MSVC 2022
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build (qmake + jom + windeployqt)
+        shell: cmd
+        working-directory: openrgb-src
+        run: |
+          qmake OpenRGB.pro CONFIG-=debug_and_release CONFIG+=release
+          jom
+          windeployqt --no-patchqt --no-quick-import --no-translations --no-system-d3d-compiler --no-compiler-runtime --no-opengl-sw --no-network .\release\
+          copy "%QT_ROOT_DIR%\bin\Qt6Core5Compat.dll" .\release\
+          copy "%QT_ROOT_DIR%\bin\Qt6OpenGL.dll" .\release\
+          move release "OpenRGB Windows 64-bit"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenRGB Windows 64-bit
+          path: openrgb-src/OpenRGB Windows 64-bit
+          if-no-files-found: error
