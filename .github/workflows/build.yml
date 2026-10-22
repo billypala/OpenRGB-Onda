@@ -28,7 +28,7 @@ jobs:
           version: 6.8.3
           arch: win64_msvc2022_64
           add-tools-to-path: true
-          modules: qt5compat qtserialport qtnetwork
+          modules: qt5compat qtserialport
 
       - name: Install jom
         shell: pwsh
